@@ -36,4 +36,4 @@ COMMUNITY_REPORT_CONFIG = {
         "entities": {"field": "entity_ids", "target_type": "Entity"},
         "text_units": {"field": "text_unit_ids", "target_type": "TextUnit"}
     }
-} 
+}

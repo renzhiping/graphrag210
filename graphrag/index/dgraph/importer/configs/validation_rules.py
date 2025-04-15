@@ -1,7 +1,7 @@
 # Copyright (c) 2024 Microsoft Corporation.
 # Licensed under the MIT License
 
-"""验证规则配置文件，定义不同数据类型在不同层的验证规则."""
+"""验证规则配置文件,定义不同数据类型在不同层的验证规则."""
 
 # 数据类型字段定义 - 中心化定义所有数据类型的字段
 DATA_TYPE_FIELDS = {
