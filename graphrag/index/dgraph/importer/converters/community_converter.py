@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import Any
 
 import pandas as pd
-import numpy as np
 
 from ..base_converter import BaseConverter
 from ..configs.community_config import COMMUNITY_CONFIG
@@ -110,12 +109,12 @@ class CommunityConverter(BaseConverter):
             return False
             
         # 处理数组/迭代器类型
-        if hasattr(value, '__iter__') and not isinstance(value, (str, dict)):
+        if hasattr(value, "__iter__") and not isinstance(value, (str | dict)):
             # 检查是否为空数组
             if len(value) == 0:
                 return False
-            # 对于numpy数组，检查是否全部为NA
-            if hasattr(value, 'any') and pd.isna(value).all():
+            # 对于numpy数组,检查是否全部为NA
+            if hasattr(value, "any") and pd.isna(value).all():
                 return False
                 
         return True

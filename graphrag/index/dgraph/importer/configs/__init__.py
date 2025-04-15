@@ -1,4 +1,4 @@
-"""配置模块初始化文件，导出所有数据类型的配置."""
+"""配置模块初始化文件,导出所有数据类型的配置."""
 
 from .community_config import COMMUNITY_CONFIG
 from .community_report_config import COMMUNITY_REPORT_CONFIG
@@ -6,12 +6,13 @@ from .document_config import DOCUMENT_CONFIG
 from .entity_config import ENTITY_CONFIG
 from .relationship_config import RELATIONSHIP_CONFIG
 from .text_unit_config import TEXT_UNIT_CONFIG
-from .validation_rules import DATA_TYPE_FIELDS, VALIDATION_RULES, get_validation_rules, get_data_type_fields
+from .validation_rules import get_data_type_fields
+
 
 # 确保所有配置使用一致的必填字段和可选字段
 def _update_config_fields(config, data_type):
     """
-    更新配置字典中的字段定义，确保与中心化定义一致.
+    更新配置字典中的字段定义,确保与中心化定义一致.
     
     Args:
         config: 配置字典
@@ -37,7 +38,7 @@ _CONFIGS = {
 
 # 导出同步后的所有配置
 CONFIGS = {
-    data_type: _update_config_fields(config.copy(), data_type) 
+    data_type: _update_config_fields(config.copy(), data_type)
     for data_type, config in _CONFIGS.items()
 }
 
