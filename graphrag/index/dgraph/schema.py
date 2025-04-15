@@ -39,7 +39,6 @@ class Entity(graphene.ObjectType):
     # Relationships
     text_units = graphene.List(lambda: TextUnit, description="Text units mentioning this entity")
     related_entities = graphene.List(lambda: Relationship, description="Relationships to other entities")
-    communities = graphene.List(lambda: Community, description="Communities this entity belongs to")
 
 
 class Relationship(graphene.ObjectType):
@@ -86,7 +85,7 @@ class Community(graphene.ObjectType):
     human_readable_id = graphene.String(description="Human readable ID")
     community = graphene.Int(description="Community number")
     level = graphene.Int(description="Community hierarchical level")
-    parent = graphene.ID(description="Parent community ID")
+    parent = graphene.Int(description="Parent community number")
     children = graphene.List(graphene.ID, description="Child community IDs")
     title = graphene.String(description="Community title")
     entity_ids = graphene.List(graphene.ID, description="Entity IDs in this community")
@@ -99,7 +98,6 @@ class Community(graphene.ObjectType):
     entities = graphene.List(Entity, description="Entities in this community")
     relationships = graphene.List(Relationship, description="Relationships in this community")
     text_units = graphene.List(TextUnit, description="Text units in this community")
-    parent_community = graphene.Field(lambda: Community, description="Parent community")
     child_communities = graphene.List(lambda: Community, description="Child communities")
     reports = graphene.List(lambda: CommunityReport, description="Reports for this community")
 
@@ -108,12 +106,18 @@ class CommunityReport(graphene.ObjectType):
     """CommunityReport model representing community_reports.parquet."""
 
     id = graphene.ID(required=True, description="Community report ID")
+    human_readable_id = graphene.String(description="Human readable ID")
     community_id = graphene.ID(description="Community ID this report belongs to")
     title = graphene.String(description="Report title")
-    content = graphene.String(description="Report content")
+    report_content = graphene.String(description="Report content")
     summary = graphene.String(description="Report summary")
-    keywords = graphene.List(graphene.String, description="Report keywords")
+    findings = graphene.JSONString(description="Report findings as JSON")
+    explanation = graphene.String(description="Report explanation")
+    rating = graphene.Int(description="Report rating")
     level = graphene.Int(description="Community level of this report")
+    period = graphene.DateTime(description="Report time period")
+    create_time = graphene.DateTime(description="Report creation time")
+    full_content_json = graphene.JSONString(description="Full report content as JSON")
     
     # Relationships
     community = graphene.Field(Community, description="Community this report belongs to") 

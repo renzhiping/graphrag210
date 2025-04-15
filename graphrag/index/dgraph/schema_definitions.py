@@ -107,7 +107,6 @@ def define_entity_schema() -> str:
     text_unit_ids: [string] @index(exact) .
     text_units: [uid] @reverse .
     related_entities: [uid] @reverse .
-    communities: [uid] @reverse .
     
     # 可视化属性
     frequency: int .
@@ -129,7 +128,6 @@ def define_entity_schema() -> str:
         y
         text_units
         related_entities
-        communities
     }
     """
     return schema  # noqa: RET504
@@ -196,9 +194,8 @@ def define_community_schema() -> str:
     level: int .
     
     # 层次关系
-    parent: uid .
-    children: [string] @index(exact) .
-    parent_community: uid @reverse .
+    parent: int .
+    children: [int] .
     child_communities: [uid] @reverse .
     
     # 包含内容
@@ -233,7 +230,6 @@ def define_community_schema() -> str:
         entities
         relationships
         text_units
-        parent_community
         child_communities
         reports
     }
@@ -252,26 +248,52 @@ def define_community_report_schema() -> str:
     schema = """
     # 基本属性
     id: string @index(exact) .
-    community_id: string @index(exact) .
+    human_readable_id: string .
+    community: int .
     title: string @index(term) .
-    content: string @index(fulltext) .
+    report_content: string @index(fulltext) .
     summary: string @index(fulltext) .
+    findings: string @index(fulltext) .
+    explanation: string @index(fulltext) .
+    rating: int .
     level: int .
     
+    # 日期相关
+    period: datetime .
+    create_time: datetime .
+    
+    # 关系ID列表
+    entity_ids: [string] @index(exact) .
+    text_unit_ids: [string] @index(exact) .
+    
     # 关系
-    community: uid .
-    keywords: [string] .
+    community_rel: uid .
+    entities: [uid] @reverse .
+    text_units: [uid] @reverse .
+    
+    # JSON字段
+    full_content_json: string .
     
     # CommunityReport类型定义
     type CommunityReport {
         id
-        community_id
-        title
-        content
-        summary
-        keywords
-        level
+        human_readable_id
         community
+        title
+        report_content
+        summary
+        findings
+        explanation
+        rating
+        level
+        period
+        create_time
+        entity_ids
+        text_unit_ids
+        community_rel
+        entities
+        text_units
+        full_content_json
     }
     """
     return schema  # noqa: RET504
