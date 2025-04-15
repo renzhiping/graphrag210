@@ -42,5 +42,5 @@ CONFIGS = {
     for data_type, config in _CONFIGS.items()
 }
 
-# 导入顺序定义，确保依赖关系正确处理
-IMPORT_ORDER = ["text_unit", "document", "entity", "relationship", "community", "community_report"] 
+# 导入顺序定义,确保依赖关系正确处理
+IMPORT_ORDER = ["text_unit", "document", "entity", "relationship", "community", "community_report"]

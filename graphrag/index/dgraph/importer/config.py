@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-配置模块，提供DGraph导入所需的配置信息。
-"""
+"""配置模块,提供DGraph导入所需的配置信息."""
 from graphrag.index.dgraph.importer.configs import CONFIGS, IMPORT_ORDER
 
-# 为了兼容性，保留原始配置
+# 为了兼容性,保留原始配置
 IMPORT_CONFIGS = CONFIGS
 
 # 导入顺序（为了兼容性）
@@ -19,4 +16,4 @@ MODEL_MAPPING = {
     "relationship": "Relationship",
     "community": "Community",
     "community_report": "CommunityReport"
-} 
+}

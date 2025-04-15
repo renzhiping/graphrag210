@@ -6,7 +6,8 @@ import argparse
 import logging
 import sys
 import time
-from typing import Any, Dict, List, Optional, Union
+import os
+from typing import Any, Dict, List, Optional, Union, IO, BinaryIO, TextIO
 
 import numpy as np
 import pandas as pd
@@ -36,8 +37,8 @@ class DGraphImporter:
     
     def __init__(
         self,
+        client=None,
         data_dir: str = '/Users/renzhiping/workspace2/graphrag_root/output',
-        dgraph_host: str = 'localhost:9080',
         batch_size: int = 1000,
         conflict_strategy: str = 'upsert'
     ):
@@ -45,35 +46,29 @@ class DGraphImporter:
         初始化导入器.
         
         Args:
+            client: DGraph客户端对象
             data_dir: 数据目录路径
-            dgraph_host: DGraph服务器地址
             batch_size: 批量导入的批次大小
             conflict_strategy: 冲突处理策略(upsert, insert, skip)
         """
+        self.client = client
         self.data_dir = data_dir
-        self.dgraph_host = dgraph_host
         self.batch_size = batch_size
         self.conflict_strategy = conflict_strategy
-        self.client = None
         self.storage_validator = StorageValidator()
         
-    def connect(self):
-        """连接到DGraph数据库."""
-        logger.info(f"正在连接到DGraph服务器: {self.dgraph_host}")
-        self.client = create_client(self.dgraph_host)
-            
     def import_data(self, data_types: Optional[list[str]] = None) -> dict[str, int]:
         """
-        导入数据到DGraph.
+        基于目录导入数据到DGraph.
         
         Args:
-            data_types: 要导入的数据类型列表，None表示导入所有类型
+            data_types: 要导入的数据类型列表,None表示导入所有类型
             
         Return:
             dict[str, int]: 每种类型的导入数量
         """
         if self.client is None:
-            self.connect()
+            raise ValueError("DGraph客户端未初始化，请在初始化导入器时提供客户端")
             
         results = {}
         start_time = time.time()
@@ -121,6 +116,73 @@ class DGraphImporter:
         logger.info(f"所有数据导入完成，共耗时 {end_time - start_time:.2f} 秒")
         
         return results
+    
+    def import_from_file(self, file: Union[str, IO, BinaryIO], data_type: str) -> int:
+        """
+        从Parquet文件对象导入数据到DGraph.
+        
+        Args:
+            file: Parquet文件对象或文件路径
+            data_type: 数据类型
+            
+        Return:
+            int: 导入的数据条数
+        """
+        if self.client is None:
+            raise ValueError("DGraph客户端未初始化，请在初始化导入器时提供客户端")
+        
+        if data_type not in IMPORT_CONFIGS:
+            raise ValueError(f"未知数据类型: {data_type}")
+        
+        logger.info(f"正在导入Parquet格式的{data_type}数据...")
+        
+        try:
+            # 读取Parquet文件
+            data = pd.read_parquet(file)
+            
+            # 使用DataFrame导入方法处理数据
+            return self.import_from_dataframe(data, data_type)
+            
+        except Exception as e:
+            logger.error(f"导入Parquet格式的{data_type}数据时出错: {str(e)}")
+            import traceback
+            logger.error(f"错误详情: {traceback.format_exc()}")
+            return 0
+    
+    def import_from_dataframe(self, df: pd.DataFrame, data_type: str) -> int:
+        """
+        从DataFrame导入数据到DGraph.
+        
+        Args:
+            df: 包含要导入数据的DataFrame
+            data_type: 数据类型
+            
+        Return:
+            int: 导入的数据条数
+        """
+        if self.client is None:
+            raise ValueError("DGraph客户端未初始化，请在初始化导入器时提供客户端")
+        
+        if data_type not in IMPORT_CONFIGS:
+            raise ValueError(f"未知数据类型: {data_type}")
+        
+        logger.info(f"正在从DataFrame导入 {data_type} 数据...")
+        
+        # 检查数据是否为空
+        if Validator.is_empty(df):
+            logger.warning(f"没有找到 {data_type} 类型的数据")
+            return 0
+        
+        try:
+            # 直接批量导入数据到DGraph
+            imported_count = self._batch_import(data_type, df)
+            logger.info(f"导入 {data_type} 数据完成，共导入 {imported_count} 条记录")
+            return imported_count
+        except Exception as e:
+            logger.error(f"从DataFrame导入 {data_type} 数据时出错: {str(e)}")
+            import traceback
+            logger.error(f"错误详情: {traceback.format_exc()}")
+            return 0
     
     def _batch_import(self, data_type: str, data: Union[pd.DataFrame, List[Dict[str, Any]]]) -> int:
         """
@@ -232,12 +294,6 @@ class DGraphImporter:
             logger.info(f"已导入 {data_type} 数据: {imported}/{total}，当前批次: {batch_size}")
             
         return imported
-    
-    def close(self):
-        """关闭DGraph客户端连接."""
-        if self.client:
-            self.client.close()
-            self.client = None
 
 
 def main():
@@ -253,29 +309,42 @@ def main():
                        help='要导入的数据类型，支持 text_unit, document, entity, relationship, community 或 all')
     parser.add_argument('--conflict', type=str, choices=['upsert', 'insert', 'skip'], default='upsert',
                        help='冲突处理策略')
+    parser.add_argument('--file', type=str, default=None,
+                       help='单个文件路径（可选，与--type一起使用）')
+    parser.add_argument('--type', type=str, default=None,
+                       help='单个数据类型（与--file一起使用）')
     
     args = parser.parse_args()
     
-    # 创建导入器
-    importer = DGraphImporter(
-        data_dir=args.data_dir,
-        dgraph_host=args.dgraph_host,
-        batch_size=args.batch_size,
-        conflict_strategy=args.conflict
-    )
+    # 创建客户端
+    client = create_client(args.dgraph_host)
     
     try:
-        # 导入数据
-        results = importer.import_data(args.types)
+        # 创建导入器
+        importer = DGraphImporter(
+            client=client,
+            data_dir=args.data_dir,
+            batch_size=args.batch_size,
+            conflict_strategy=args.conflict
+        )
         
-        # 输出导入结果
-        logger.info("导入结果摘要:")
-        for data_type, count in results.items():
-            logger.info(f"{data_type}: {count}条记录")
+        # 导入数据
+        if args.file and args.type:
+            # 从单个文件导入
+            count = importer.import_from_file(args.file, args.type)
+            logger.info(f"从文件导入完成: {args.type}: {count}条记录")
+        else:
+            # 从目录导入
+            results = importer.import_data(args.types)
+            
+            # 输出导入结果
+            logger.info("导入结果摘要:")
+            for data_type, count in results.items():
+                logger.info(f"{data_type}: {count}条记录")
             
     finally:
         # 关闭连接
-        importer.close()
+        client.close()
 
 
 if __name__ == '__main__':
